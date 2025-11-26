@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.kesonglite.ui.common.SwipeToDismissLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/swipeDismissLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+    
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <!-- Top Bar -->
+    <ImageView
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="12dp"
+        android:src="@drawable/ic_back"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:contentDescription="返回" />
+
+    <ImageView
+        android:id="@+id/ivDetailAvatar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        app:layout_constraintStart_toEndOf="@id/btnBack"
+        app:layout_constraintTop_toTopOf="@id/btnBack"
+        app:layout_constraintBottom_toBottomOf="@id/btnBack"
+        android:contentDescription="作者头像" />
+
+    <TextView
+        android:id="@+id/tvDetailName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@id/ivDetailAvatar"
+        app:layout_constraintTop_toTopOf="@id/ivDetailAvatar"
+        app:layout_constraintBottom_toBottomOf="@id/ivDetailAvatar"/>
+
+    <Button
+        android:id="@+id/btnFollow"
+        android:layout_width="wrap_content"
+        android:minWidth="56dp"
+        android:layout_height="32dp"
+        android:text="关注"
+        android:textSize="12sp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/tvDetailName"
+        app:layout_constraintTop_toTopOf="@id/tvDetailName"
+        app:layout_constraintBottom_toBottomOf="@id/tvDetailName"
+        android:gravity="center"/>
+
+    <!-- Scrollable Content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/btnBack"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Image Slider -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/viewPager"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:transitionName="hero_image" /> <!-- Transition Name will be set dynamically -->
+
+                <!-- 进度条容器 -->
+                <LinearLayout
+                    android:id="@+id/progressIndicatorContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="4dp"
+                    android:layout_gravity="bottom"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="12dp"
+                    android:layout_marginBottom="56dp"
+                    android:visibility="gone"
+                    android:background="#1A000000" /> <!-- 半透明背景 -->
+
+                <ImageView
+                    android:id="@+id/btnMute"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="12dp"
+                    android:src="@drawable/ic_volume_on"
+                    android:background="@drawable/bg_mute_button"
+                    android:padding="4dp"
+                    android:contentDescription="静音按钮"
+                    android:clickable="true"
+                    android:focusable="true" />
+                    <!-- 确保可点击 -->
+            </FrameLayout>
+
+            <!-- Indicators (简化，不实现) -->
+            <!--
+            <LinearLayout
+                android:id="@+id/indicatorLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:padding="8dp"/>
+            -->
+
+            <!-- Text Content -->
+            <TextView
+                android:id="@+id/tvDetailTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:padding="16dp"/>
+
+            <TextView
+                android:id="@+id/tvDetailContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:lineSpacingExtra="4dp"
+                android:paddingHorizontal="16dp"/>
+
+            <TextView
+                android:id="@+id/tvDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#999"
+                android:padding="16dp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Bar -->
+    <LinearLayout
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="#F8F8F8"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <EditText
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:hint="说点什么..."
+            android:background="@drawable/bg_comment_input"
+            android:paddingStart="12dp"
+            android:autofillHints="comment"
+            android:inputType="text"/>
+
+        <!-- Add interaction icons here (Like, Star, Share) -->
+        <ImageView
+            android:id="@+id/ivDetailLike"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_heart_outline"
+            android:contentDescription="点赞"/>
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_comment"
+            android:contentDescription="评论"/>
+
+        <ImageView
+            android:id="@+id/ivDetailShare"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_share"
+            android:contentDescription="分享"/>
+
+    </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+</com.example.kesonglite.ui.common.SwipeToDismissLayout>

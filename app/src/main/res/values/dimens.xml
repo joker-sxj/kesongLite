@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Progress bar dimensions -->
+    <dimen name="progress_bar_gap">2dp</dimen>
+</resources>
