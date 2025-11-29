@@ -28,6 +28,12 @@
             android:name=".ui.DetailActivity"
             android:exported="false"
             android:theme="@style/Theme.KesongLite.Detail" />
+        
+        <!-- 详情 Activity (带转场动画) -->
+        <activity
+            android:name=".ui.detail.DetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.KesongLite.Detail" />
 
     </application>
 

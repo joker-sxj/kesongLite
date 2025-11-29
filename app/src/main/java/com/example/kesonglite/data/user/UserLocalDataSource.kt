@@ -75,4 +75,36 @@ class UserLocalDataSource(context: Context) {
     fun setMuted(isMuted: Boolean) {
         prefsManager.putBoolean(KEY_MUTED, isMuted)
     }
+    
+    /**
+     * 检查帖子是否被收藏
+     */
+    fun isPostFavorited(postId: String): Boolean {
+        return prefsManager.getBoolean("favorite_$postId", false)
+    }
+    
+    /**
+     * 切换帖子收藏状态
+     * @return 返回切换后的状态
+     */
+    fun togglePostFavorited(postId: String): Boolean {
+        val currentState = isPostFavorited(postId)
+        val newState = !currentState
+        prefsManager.putBoolean("favorite_$postId", newState)
+        return newState
+    }
+    
+    /**
+     * 获取帖子的收藏数量
+     */
+    fun getFavoriteCount(postId: String): Int {
+        return prefsManager.getInt("favorite_count_$postId", 0)
+    }
+    
+    /**
+     * 设置帖子的收藏数量
+     */
+    fun setFavoriteCount(postId: String, favoriteCount: Int) {
+        prefsManager.putInt("favorite_count_$postId", favoriteCount)
+    }
 }

@@ -32,6 +32,7 @@ import com.example.kesonglite.ui.common.SwipeToDismissLayout
 import com.example.kesonglite.utils.PersistenceManager
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.content.res.ColorStateList
 
 class DetailActivity : AppCompatActivity() {
     // 添加类标签，便于日志记录
@@ -299,8 +300,17 @@ class DetailActivity : AppCompatActivity() {
     }
 
     private fun updateFollowButton(isFollowed: Boolean) {
-        binding.btnFollow.text = if (isFollowed) "已关注" else "关注"
-        // TODO: 样式调整
+        if (isFollowed) {
+            binding.btnFollow.text = "已关注"
+            binding.btnFollow.setTextColor(resources.getColor(android.R.color.darker_gray, theme))
+            binding.btnFollow.backgroundTintList = ColorStateList.valueOf(resources.getColor(android.R.color.white, theme))
+            binding.btnFollow.setBackgroundResource(android.R.drawable.btn_default)
+        } else {
+            binding.btnFollow.text = "关注"
+            binding.btnFollow.setTextColor(resources.getColor(android.R.color.white, theme))
+            binding.btnFollow.backgroundTintList = ColorStateList.valueOf(resources.getColor(R.color.purple_500, theme))
+            binding.btnFollow.setBackgroundResource(android.R.drawable.btn_default)
+        }
     }
 
     private fun setupMusic(post: Post) {
@@ -707,8 +717,16 @@ class DetailActivity : AppCompatActivity() {
         }
         updateLikeIcon(isLiked)
 
+        // 从持久化存储获取收藏状态和数量
+        val isFavorited = PersistenceManager.isFavorited(this, post.postId)
+        // 如果post.favoriteCount为null，则从持久化存储获取收藏数
+        if (post.favoriteCount == null) {
+            post.favoriteCount = PersistenceManager.getFavoriteCount(this, post.postId)
+        }
+        updateFavoriteIcon(isFavorited)
+
         // 点赞交互
-        binding.ivDetailLike.setOnClickListener {
+        binding.ivDetailLikeBottom.setOnClickListener {
             // post在这个位置是非空的
             val currentPost = post
             val currentLiked = PersistenceManager.isLiked(this, currentPost.postId)
@@ -730,8 +748,31 @@ class DetailActivity : AppCompatActivity() {
             Toast.makeText(this, "点赞交互已触发", Toast.LENGTH_SHORT).show()
         }
 
+        // 收藏交互
+        binding.ivDetailFavoriteBottom.setOnClickListener {
+            // post在这个位置是非空的
+            val currentPost = post
+            val currentFavorited = PersistenceManager.isFavorited(this, currentPost.postId)
+            val newFavorited = !currentFavorited
+            
+            // 更新收藏数量，使用更简洁的方式处理null和负值情况
+            if (newFavorited != currentFavorited) {
+                currentPost.favoriteCount = kotlin.math.max(0, (currentPost.favoriteCount ?: 0) + if (newFavorited) 1 else -1)
+                // 持久化存储更新后的收藏数量
+                currentPost.favoriteCount?.let { PersistenceManager.setFavoriteCount(this, currentPost.postId, it) }
+            }
+            
+            // 持久化收藏状态
+            PersistenceManager.setFavorited(this, currentPost.postId, newFavorited)
+            
+            // 更新UI
+            updateFavoriteIcon(newFavorited)
+            
+            Toast.makeText(this, "收藏交互已触发", Toast.LENGTH_SHORT).show()
+        }
+
         // 分享交互
-        binding.ivDetailShare.setOnClickListener {
+        binding.ivDetailShareBottom.setOnClickListener {
             // post在这个位置是非空的
             val currentPost = post
             
@@ -753,7 +794,11 @@ class DetailActivity : AppCompatActivity() {
     }
     
     private fun updateLikeIcon(isLiked: Boolean) {
-        binding.ivDetailLike.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+        binding.ivDetailLikeBottom.setImageResource(if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+    }
+    
+    private fun updateFavoriteIcon(isFavorited: Boolean) {
+        binding.ivDetailFavoriteBottom.setImageResource(if (isFavorited) android.R.drawable.star_on else android.R.drawable.star_off)
     }
     
 
@@ -902,8 +947,8 @@ class DetailActivity : AppCompatActivity() {
             binding.viewPager.translationY = 0f
             // 优先使用支持转场动画的finish方法
             supportFinishAfterTransition()
-            // 使用推荐的OnBackPressedDispatcher替代已弃用的onBackPressed()
-            onBackPressedDispatcher.onBackPressed()
+            // 调用父类方法，确保正确处理返回事件
+            super.onBackPressed()
         } catch (e: Exception) {
             Log.e(TAG, "Error in onBackPressed: ${e.message}")
             // 降级处理：直接使用普通的finish

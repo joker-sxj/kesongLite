@@ -30,12 +30,22 @@ class SwipeToDismissLayout @JvmOverloads constructor(
         minVelocity = ViewConfiguration.get(context).scaledMinimumFlingVelocity.toFloat()
     }
 
+    fun setBackgroundView(view: View) {
+        this.backgroundView = view
+    }
+    
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        if (mainContent == null && childCount > 0) {
-            mainContent = getChildAt(0)
+        if (childCount > 0) {
+            // 第一个子视图作为背景
+            backgroundView = getChildAt(0)
+            backgroundView?.layout(0, 0, right - left, bottom - top)
+            
+            // 第二个子视图作为主内容
+            if (childCount > 1) {
+                mainContent = getChildAt(1)
+                mainContent?.layout(0, 0, right - left, bottom - top)
+            }
         }
-
-        mainContent?.layout(0, 0, right - left, bottom - top)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -43,11 +53,11 @@ class SwipeToDismissLayout @JvmOverloads constructor(
         val height = MeasureSpec.getSize(heightMeasureSpec)
         setMeasuredDimension(width, height)
 
-        if (childCount > 0) {
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
             val childWidthSpec = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
             val childHeightSpec = MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-            mainContent = getChildAt(0)
-            mainContent?.measure(childWidthSpec, childHeightSpec)
+            child.measure(childWidthSpec, childHeightSpec)
         }
     }
 
@@ -97,7 +107,7 @@ class SwipeToDismissLayout @JvmOverloads constructor(
 
             val dragRatio = top.toFloat() / height
             val scaleRatio = 1 - dragRatio * 0.1f // 拖动时缩小视图
-
+            
             // 设置位移和缩放
             mainContent?.translationY = top.toFloat()
             mainContent?.scaleX = scaleRatio
@@ -106,9 +116,12 @@ class SwipeToDismissLayout @JvmOverloads constructor(
             // 通知监听器拖动进度
             dragListener?.onDrag(dragRatio)
 
-            // 调整背景透明度
-            val alpha = 1 - dragRatio
+            // 调整背景透明度 - 随着拖动，背景逐渐显示（双列页面从暗淡转明亮）
+            val alpha = dragRatio
             backgroundView?.alpha = alpha
+            
+            // 调整主内容的透明度，随着拖动逐渐变暗
+            mainContent?.alpha = 1 - dragRatio * 0.3f
         }
 
         override fun onViewReleased(releasedChild: View, xvel: Float, yvel: Float) {

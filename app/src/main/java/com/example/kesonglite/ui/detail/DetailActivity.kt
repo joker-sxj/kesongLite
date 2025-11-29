@@ -36,6 +36,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import com.example.kesonglite.R
 
 class DetailActivity : AppCompatActivity() {
     // 添加类标签，便于日志记录
@@ -70,6 +71,20 @@ class DetailActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 设置自定义转场动画
+        window.sharedElementEnterTransition = android.transition.TransitionInflater.from(this)
+            .inflateTransition(R.transition.hero_image_transition)
+        window.sharedElementReturnTransition = android.transition.TransitionInflater.from(this)
+            .inflateTransition(R.transition.hero_image_reverse_transition)
+        
+        // 设置其他元素的淡入淡出动画
+        window.enterTransition = android.transition.Fade().apply {
+            duration = 300
+        }
+        window.exitTransition = android.transition.Fade().apply {
+            duration = 300
+        }
         
         try {
             binding = ActivityDetailBinding.inflate(layoutInflater)
@@ -140,7 +155,41 @@ class DetailActivity : AppCompatActivity() {
     }
 
     private fun setupMusic(post: Post) {
-        // 音乐信息暂时不显示
+        // 安全获取音乐URL，如果不存在则直接返回
+        val musicUrl = post.music?.url ?: return
+        
+        // 优化：如果mediaPlayer已存在且正在播放相同的音乐，则不需要重新初始化
+        if (mediaPlayer != null && mediaPlayer!!.isPlaying) {
+            // 只需确保音量状态正确即可
+            mediaPlayer?.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)
+            return
+        }
+        
+        // 确保在设置新的音乐源之前释放已存在的MediaPlayer实例
+        releaseMediaPlayer()
+        
+        // 创建新的MediaPlayer实例
+        mediaPlayer = MediaPlayer().apply {
+            try {
+                setDataSource(musicUrl)
+                prepareAsync()
+                setOnPreparedListener { 
+                    isLooping = true // 设置为循环播放
+                    if (isMuted) setVolume(0f, 0f) else setVolume(1f, 1f)
+                    // 检查活动状态，避免在不活跃状态下开始播放
+                    if (!isFinishing && !isDestroyed) {
+                        start()
+                    }
+                }
+                setOnErrorListener { _, what, extra ->
+                    Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra")
+                    true // 返回true表示我们已经处理了错误
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting up MediaPlayer: ${e.message}")
+                releaseMediaPlayer() // 发生错误时释放资源
+            }
+        }
     }
 
     private fun setupMuteButton() {
@@ -151,16 +200,28 @@ class DetailActivity : AppCompatActivity() {
             isMuted = !isMuted
             AppStateMemory.setMuted(postId, isMuted)
             updateMuteIcon()
-            // 这里可以调用相应的方法来控制视频静音
+            
+            // 控制视频静音
             if (mediaPlayer != null) {
                 val volume = if (isMuted) 0f else 1f
                 mediaPlayer?.setVolume(volume, volume) // 添加右声道音量参数
+            }
+            
+            // 控制自动轮播
+            if (isMuted) {
+                stopAutoScroll() // 静音时停止自动轮播
+            } else {
+                // 取消静音时恢复自动轮播
+                val clipCount = binding.viewPager.adapter?.itemCount ?: 0
+                if (clipCount > 1 && !isAutoScrollPausedByManualSwipe) {
+                    startAutoScroll(clipCount)
+                }
             }
         }
     }
 
     private fun updateMuteIcon() {
-        binding.btnMute.setImageResource(android.R.drawable.ic_lock_silent_mode)
+        binding.btnMute.setImageResource(if (isMuted) R.drawable.ic_volume_off else R.drawable.ic_volume_on)
     }
 
     private fun setupBottomBarInteractions(post: Post) {
@@ -171,16 +232,31 @@ class DetailActivity : AppCompatActivity() {
             post.likeCount = userLocalDataSource.getLikeCount(post.postId)
         }
         updateLikeStatus(isLiked, post)
+        
+        // 从持久化存储获取收藏状态和数量
+        val isFavorited = userLocalDataSource.isPostFavorited(post.postId)
+        // 如果post.favoriteCount为null，则从持久化存储获取收藏数
+        if (post.favoriteCount == null) {
+            post.favoriteCount = userLocalDataSource.getFavoriteCount(post.postId)
+        }
+        updateFavoriteIcon(isFavorited)
 
         // 点赞交互
-        binding.ivDetailLike.setOnClickListener {
+        binding.ivDetailLikeBottom.setOnClickListener {
             val currentPost = post
             if (currentPost == null) return@setOnClickListener
             toggleLike(currentPost)
         }
+        
+        // 收藏交互
+        binding.ivDetailFavoriteBottom.setOnClickListener {
+            val currentPost = post
+            if (currentPost == null) return@setOnClickListener
+            toggleFavorite(currentPost)
+        }
 
         // 分享交互
-        binding.ivDetailShare.setOnClickListener {
+        binding.ivDetailShareBottom.setOnClickListener {
             val currentPost = post
             if (currentPost == null) return@setOnClickListener
             
@@ -204,11 +280,48 @@ class DetailActivity : AppCompatActivity() {
     private fun updateLikeStatus(isLiked: Boolean, post: Post) {
         // 简化点赞图标处理，使用系统默认图标
         try {
-            binding.ivDetailLike.setImageResource(android.R.drawable.ic_input_add)
+            binding.ivDetailLikeBottom.setImageResource(android.R.drawable.ic_input_add)
         } catch (e: Exception) {
             Log.w(TAG, "ivDetailLike not found", e)
         }
         // 不再尝试访问tvLikeCount，避免Unresolved reference错误
+    }
+    
+    private fun updateFavoriteIcon(isFavorited: Boolean) {
+        // 更新收藏图标，使用星星图标
+        try {
+            binding.ivDetailFavoriteBottom.setImageResource(
+                if (isFavorited) android.R.drawable.star_on else android.R.drawable.star_off
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "ivDetailFavoriteBottom not found", e)
+        }
+    }
+    
+    private fun toggleFavorite(post: Post) {
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // 获取当前收藏状态
+                val currentFavorited = userLocalDataSource.isPostFavorited(post.postId)
+                val newFavorited = !currentFavorited
+                
+                // 更新收藏状态
+                userLocalDataSource.togglePostFavorited(post.postId)
+                
+                // 更新收藏数
+                val favoriteCount = kotlin.math.max(0, (post.favoriteCount ?: 0) + (if (newFavorited) 1 else -1))
+                userLocalDataSource.setFavoriteCount(post.postId, favoriteCount)
+                post.favoriteCount = favoriteCount
+                
+                // 更新UI
+                updateFavoriteIcon(newFavorited)
+                
+                Toast.makeText(this@DetailActivity, "收藏交互已触发", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error toggling favorite status", e)
+                Toast.makeText(this@DetailActivity, "收藏操作失败", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     private fun toggleLike(post: Post) {
@@ -264,8 +377,17 @@ class DetailActivity : AppCompatActivity() {
         val clips = clipsList.toList()
         // 这里简化实现，实际应该根据clips列表设置ViewPager
         if (clips.isNotEmpty()) {
-            // 设置ViewPager适配器
-            val adapter = DetailClipAdapter(clips)
+            // 设置ViewPager适配器，添加视频完播回调
+            val adapter = DetailClipAdapter(clips) {
+                // 视频完播后，自动切换到下一片段
+                val currentPosition = binding.viewPager.currentItem
+                if (currentPosition < clips.size - 1) {
+                    binding.viewPager.setCurrentItem(currentPosition + 1, true)
+                } else {
+                    // 循环播放，回到第一片
+                    binding.viewPager.setCurrentItem(0, true)
+                }
+            }
             binding.viewPager.adapter = adapter
             
             // 设置ViewPager滚动监听器
@@ -299,7 +421,8 @@ class DetailActivity : AppCompatActivity() {
 
     private fun startAutoScroll(clipCount: Int) {
         stopAutoScroll() // 先停止之前的滚动
-        if (clipCount > 1) {
+        // 只有在非静音状态下才启动自动轮播
+        if (clipCount > 1 && !isMuted) {
             autoScrollHandler.postDelayed(autoScrollRunnable, 3000) // 3秒后开始自动滚动
         }
     }
@@ -314,11 +437,64 @@ class DetailActivity : AppCompatActivity() {
             val content = findViewById<ViewGroup>(android.R.id.content)
             val child = content.getChildAt(0)
             content.removeView(child)
+            
+            // 创建背景蒙层视图
+            val backgroundView = View(this)
+            backgroundView.setBackgroundColor(android.graphics.Color.BLACK)
+            backgroundView.alpha = 0f
+            
+            // 添加背景和内容到swipeLayout
+            swipeLayout.addView(backgroundView)
             swipeLayout.addView(child)
             content.addView(swipeLayout)
             
-            // 设置简单的点击关闭功能，避免监听器问题
-            swipeLayout.setOnClickListener { finish() }
+            // 设置swipeLayout的背景视图
+            swipeLayout.setDragListener(object : SwipeToDismissLayout.OnDragListener {
+                override fun onDragStart() {
+                    // 拖动开始时，停止视频播放和自动滚动
+                    stopPlaybackAndAutoScroll()
+                }
+                
+                override fun onDrag(progress: Float) {
+                    // 拖动过程中，可以根据进度调整其他UI元素
+                    Log.d(TAG, "Dragging progress: $progress")
+                    
+                    // 调整其他元素的透明度
+                    binding.tvDetailName.alpha = 1 - progress
+                    binding.tvDetailTitle.alpha = 1 - progress
+                    binding.tvDetailContent.alpha = 1 - progress
+                    binding.btnBack.alpha = 1 - progress
+                    binding.btnMute.alpha = 1 - progress
+                    binding.bottomBar.alpha = 1 - progress
+                }
+                
+                override fun onDragEnd(shouldFinish: Boolean) {
+                    try {
+                        if (shouldFinish) {
+                            // 如果需要结束Activity，确保使用supportFinishAfterTransition
+                            supportFinishAfterTransition()
+                        } else {
+                            // 如果不需要结束，恢复播放和轮播（如果当前非静音状态）
+                            if (!isMuted) {
+                                startPlaybackAndAutoScroll()
+                            }
+                            // 恢复UI元素透明度
+                            binding.tvDetailName.alpha = 1f
+                            binding.tvDetailTitle.alpha = 1f
+                            binding.tvDetailContent.alpha = 1f
+                            binding.btnBack.alpha = 1f
+                            binding.btnMute.alpha = 1f
+                            binding.bottomBar.alpha = 1f
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error in onDragEnd: ${e.message}", e)
+                        // 降级处理：直接完成Activity
+                        if (shouldFinish) {
+                            finish()
+                        }
+                    }
+                }
+            })
         } catch (e: Exception) {
             Log.w(TAG, "Failed to setup SwipeToDismissLayout", e)
         }
@@ -365,15 +541,34 @@ class DetailActivity : AppCompatActivity() {
 
     private fun stopPlaybackAndAutoScroll() {
         stopAutoScroll()
-        // 这里可以停止视频播放
+        // 停止视频播放和音乐
+        if (mediaPlayer != null) {
+            if (mediaPlayer?.isPlaying == true) {
+                mediaPlayer?.pause()
+            }
+        }
     }
 
     private fun startPlaybackAndAutoScroll() {
-        // 这里可以开始视频播放
-        val currentPost = post
-        val clips = currentPost?.clips
-        if (currentPost != null && clips != null && clips.size > 1) {
-            startAutoScroll(clips.size)
+        try {
+            // 恢复视频播放和音乐（根据静音状态）
+            val currentPost = post
+            val clips = currentPost?.clips
+            if (currentPost != null && clips != null && clips.size > 1) {
+                startAutoScroll(clips.size)
+            }
+            
+            // 根据静音状态控制音乐播放
+            try {
+                mediaPlayer?.setVolume(if (isMuted) 0f else 1f, if (isMuted) 0f else 1f)
+                if (mediaPlayer?.isPlaying == false && !isFinishing && !isDestroyed) {
+                    mediaPlayer?.start()
+                }
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Error starting media player: ${e.message}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting playback and auto scroll: ${e.message}")
         }
     }
 

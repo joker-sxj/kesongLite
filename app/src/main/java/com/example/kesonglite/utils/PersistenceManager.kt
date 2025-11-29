@@ -69,4 +69,36 @@ object PersistenceManager {
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
             .edit().putBoolean("follow_$userId", isFollowed).apply()
     }
+    
+    /**
+     * 检查帖子是否被收藏
+     */
+    fun isFavorited(context: Context, postId: String): Boolean {
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean("favorite_$postId", false)
+    }
+    
+    /**
+     * 设置帖子收藏状态
+     */
+    fun setFavorited(context: Context, postId: String, isFavorited: Boolean) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .edit().putBoolean("favorite_$postId", isFavorited).apply()
+    }
+    
+    /**
+     * 获取帖子的收藏数量
+     */
+    fun getFavoriteCount(context: Context, postId: String): Int {
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt("favorite_count_$postId", 0)
+    }
+    
+    /**
+     * 设置帖子的收藏数量
+     */
+    fun setFavoriteCount(context: Context, postId: String, favoriteCount: Int) {
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .edit().putInt("favorite_count_$postId", favoriteCount).apply()
+    }
 }

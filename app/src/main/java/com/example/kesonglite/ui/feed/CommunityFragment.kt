@@ -51,7 +51,6 @@ class CommunityFragment : Fragment() {
 
     private fun setupTabs() {
         val tabs = listOf(
-            binding.tvTabBeijing,
             binding.tvTabGroupBuy,
             binding.tvTabFollow,
             binding.tvTabCommunity, // 社区
@@ -96,7 +95,33 @@ class CommunityFragment : Fragment() {
         feedAdapter = com.example.kesonglite.ui.feed.FeedAdapter(requireContext(), mutableListOf())
         // 设置用户交互用例
         feedAdapter.setUserInteractionUseCase(userInteractionUseCase)
+        
+        // 设置RecyclerView布局管理器
         binding.recyclerView.layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
+        
+        // 设置RecyclerView滑动监听，快速滑动时暂停图片加载
+        binding.recyclerView.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: androidx.recyclerview.widget.RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                val glideRequestManager = com.bumptech.glide.Glide.with(requireContext())
+                when (newState) {
+                    androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE -> {
+                        // 滑动停止，恢复图片加载
+                        glideRequestManager.resumeRequests()
+                    }
+                    androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING -> {
+                        // 拖动中，继续加载
+                        glideRequestManager.resumeRequests()
+                    }
+                    androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_SETTLING -> {
+                        // 快速滑动，暂停图片加载
+                        glideRequestManager.pauseRequests()
+                    }
+                }
+            }
+        })
+        
+        // 设置适配器
         binding.recyclerView.adapter = feedAdapter
     }
 

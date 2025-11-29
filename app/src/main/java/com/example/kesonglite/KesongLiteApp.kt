@@ -18,5 +18,8 @@ class KesongLiteApp : Application() {
         
         // 初始化依赖容器
         container = AppContainer(applicationContext)
+        
+        // 冷启动时重置应用状态
+        com.example.kesonglite.data.state.AppStateMemory.coldStartReset()
     }
 }

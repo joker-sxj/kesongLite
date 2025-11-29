@@ -1,18 +1,18 @@
 package com.example.kesonglite.data.state
 
 object AppStateMemory {
-    // key: postId, value: isMuted (true for Muted/Stopped, false for Playing/Auto-Scroll)
-    private val playbackStates = mutableMapOf<String, Boolean>()
+    // 全局静音状态，支持APP生命周期内生效
+    private var globalMutedState: Boolean = false
     
     // 初始为非静音
-    fun isMuted(postId: String): Boolean = playbackStates[postId] ?: false
+    fun isMuted(postId: String): Boolean = globalMutedState
     
     fun setMuted(postId: String, isMuted: Boolean) {
-        playbackStates[postId] = isMuted
+        globalMutedState = isMuted
     }
     
-    // 模拟 APP 冷启动后重置
+    // APP 冷启动后重置
     fun coldStartReset() {
-        playbackStates.clear()
+        globalMutedState = false
     }
 }

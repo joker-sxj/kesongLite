@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.kesonglite.KesongLiteApp
 import com.example.kesonglite.domain.usecase.GetFeedUseCase
+import com.example.kesonglite.ui.feed.FeedViewModel
 
 /**
  * FeedViewModel工厂类

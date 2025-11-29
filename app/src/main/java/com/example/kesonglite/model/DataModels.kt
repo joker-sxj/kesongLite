@@ -19,7 +19,10 @@ data class Post(
     val author: Author,
     val clips: List<Clip>?,
     val music: Music?,
-    @SerializedName("like_count") var likeCount: Int? = 0 // 添加likeCount属性，可空类型，默认值为0
+    @SerializedName("like_count") var likeCount: Int? = 0, // 添加likeCount属性，可空类型，默认值为0
+    @SerializedName("favorite_count") var favoriteCount: Int? = 0, // 添加favoriteCount属性，可空类型，默认值为0
+    @SerializedName("view_count") val viewCount: Int? = 0, // 添加viewCount属性，可空类型，默认值为0
+    val location: String? = null // 添加location属性，可空类型，默认值为null
 ) : Parcelable
 
 @Parcelize

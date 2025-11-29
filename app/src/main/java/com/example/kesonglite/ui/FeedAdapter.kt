@@ -73,6 +73,8 @@ class FeedAdapter(private val context: Context, private var posts: MutableList<P
         }
         
         Glide.with(context).load(post.author.avatar).transform(CircleCrop()).into(binding.ivAvatar)
+        
+
 
         // 点赞逻辑 - 从持久化存储获取点赞状态和数量
         val isLiked = PersistenceManager.isLiked(context, post.postId)

@@ -7,6 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.example.kesonglite.R
 import com.example.kesonglite.databinding.ItemSliderClipBinding
 import com.example.kesonglite.domain.model.Clip
 
@@ -55,6 +57,7 @@ class DetailClipAdapter(
             // 根据clip类型设置UI
             if (clip.type == 1) { // 视频
                 binding.videoView.visibility = View.VISIBLE
+                binding.ivClip.visibility = View.GONE
 
                 // 设置视频URI
                 val videoUri = Uri.parse(clip.url)
@@ -67,22 +70,33 @@ class DetailClipAdapter(
                     if (position < clips.size - 1) {
                         // 这里可以通知DetailActivity滚动到下一页
                         onVideoCompletion.invoke()
+                    } else {
+                        // 最后一页视频播放完成，循环播放
+                        it.start()
                     }
-                    // 循环播放
-                    it.start()
                 }
 
                 // 设置错误监听
                 binding.videoView.setOnErrorListener { _, what, extra ->
                     Log.e(TAG, "Video playback error: what=$what, extra=$extra")
-                    // 隐藏出错的视频视图
+                    // 隐藏出错的视频视图，显示图片占位符
                     binding.videoView.visibility = View.GONE
+                    binding.ivClip.visibility = View.VISIBLE
+                    binding.ivClip.setImageResource(R.drawable.ic_avatar_placeholder)
                     return@setOnErrorListener true
                 }
 
-            } else { // 图片或其他类型 - 简化处理，暂时隐藏
+            } else { // 图片
                 binding.videoView.visibility = View.GONE
-                // 注意：这里原本有图片加载逻辑，但由于imageView不存在，暂时省略
+                binding.ivClip.visibility = View.VISIBLE
+                
+                // 加载图片，添加占位符和过渡效果，避免黑屏
+                Glide.with(binding.ivClip.context)
+                    .load(clip.url)
+                    .placeholder(R.drawable.ic_avatar_placeholder)
+                    .transition(DrawableTransitionOptions.withCrossFade(300))
+                    .thumbnail(0.1f)
+                    .into(binding.ivClip)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error binding view holder: ${e.message}")

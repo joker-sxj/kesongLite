@@ -134,9 +134,14 @@ class FeedAdapter(private var posts: MutableList<Post> = mutableListOf()) : Recy
         
         // 确保有 clip 才能加载图片
         if (firstClip != null) {
-            Glide.with(context).load(firstClip.url).into(binding.ivCover)
+            Glide.with(context)
+                .load(firstClip.url)
+                .placeholder(R.drawable.ic_avatar_placeholder) // 添加占位符
+                .transition(com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade(300)) // 淡入动画
+                .thumbnail(0.1f) // 加载缩略图，提升加载体验
+                .into(binding.ivCover)
         } else {
-            binding.ivCover.setImageDrawable(null) // 清空图片
+            binding.ivCover.setImageResource(R.drawable.ic_avatar_placeholder) // 使用占位符
         }
         
         Glide.with(context).load(post.author.avatar).transform(CircleCrop()).into(binding.ivAvatar)

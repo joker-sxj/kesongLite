@@ -40,7 +40,6 @@ class CommunityFragment : Fragment() {
 
     fun setupTabs(binding: FragmentCommunityBinding) {
         val tabs = listOf(
-            binding.tvTabBeijing,
             binding.tvTabGroupBuy,
             binding.tvTabFollow,
             binding.tvTabCommunity, // 社区
